@@ -1,10 +1,9 @@
 package com.pm.formfitbackend.workout.entity;
-
 import com.pm.formfitbackend.exercise.entity.Exercise;
 import jakarta.persistence.*;
-
 import java.util.ArrayList;
 import java.util.List;
+
 @Entity
 @Table(
         name = "workout_exercises",
@@ -35,7 +34,7 @@ public class WorkoutExercise {
     private Exercise exercise;
 
     @Column(name = "order_index", nullable = false)
-    private Integer orderIndex;
+    private Integer orderIndex = 0;
 
     @Column(length = 500)
     private String notes;
@@ -101,4 +100,4 @@ public class WorkoutExercise {
         return sets;
     }
 }
-}
+
