@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply font-sans bg-background text-text-primary;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply w-full bg-primary text-white rounded-xl py-3 font-semibold text-base hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-outline {
+    @apply w-full border border-border rounded-xl py-3 font-medium text-text-primary hover:bg-gray-50 transition-colors;
+  }
+  .input-field {
+    @apply w-full border border-border rounded-xl px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors bg-white;
+  }
+  .card {
+    @apply bg-card rounded-2xl border border-border p-4;
+  }
+}
