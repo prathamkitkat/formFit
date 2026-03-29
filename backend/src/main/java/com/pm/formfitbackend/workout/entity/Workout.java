@@ -61,6 +61,9 @@ public class Workout {
     @Version
     private Long version;
 
+    @Column(name = "records_count")
+    private Integer recordsCount = 0;
+
     public void addExercise(WorkoutExercise exercise) {
         exercises.add(exercise);
         exercise.setWorkout(this);
@@ -130,6 +133,14 @@ public class Workout {
 
     public Long getVersion() {
         return version;
+    }
+
+    public Integer getRecordsCount() {
+        return recordsCount;
+    }
+
+    public void setRecordsCount(Integer recordsCount) {
+        this.recordsCount = recordsCount;
     }
 
 }

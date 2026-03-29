@@ -5,7 +5,7 @@ import { useWorkout } from '../../context/WorkoutContext';
 import { discardWorkout } from '../../api/workout';
 import { useToast } from '../../context/ToastContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
-import { formatDuration } from '../../utils/formatters';
+import { formatActiveDuration } from '../../utils/formatters';
 
 export default function MiniActiveWorkout() {
     const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function MiniActiveWorkout() {
 
     useEffect(() => {
         if (!activeWorkout?.startedAt) return;
-        const update = () => setElapsed(Math.floor((Date.now() - new Date(activeWorkout.startedAt).getTime()) / 60000));
+        const update = () => setElapsed(Math.floor((Date.now() - new Date(activeWorkout.startedAt).getTime()) / 1000));
         update();
         const t = setInterval(update, 1000);
         return () => clearInterval(t);
@@ -50,7 +50,7 @@ export default function MiniActiveWorkout() {
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-success opacity-90 shadow-[0_0_5px_rgba(34,197,94,0.6)]" />
                             <p className="text-sm font-bold text-text-primary capitalize truncate max-w-[120px]">{activeWorkout.name || 'Workout'}</p>
-                            <span className="text-sm font-bold text-text-primary">{formatDuration(elapsed)}</span>
+                            <span className="text-sm font-bold text-text-primary">{formatActiveDuration(elapsed)}</span>
                         </div>
                         <p className="text-xs text-text-secondary mt-0.5">
                             {activeWorkout?.exercises?.length === 0 ? 'No exercise' : `${activeWorkout?.exercises?.length} exercise${activeWorkout?.exercises?.length !== 1 ? 's' : ''}`}

@@ -7,7 +7,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import {
     getTemplateById, updateTemplateName, deleteTemplate,
     addTemplatExercises, removeTemplateExercise,
-    incrementTemplateSets, decrementTemplateSets,
+    incrementTemplateSets, decrementTemplateSets, saveTemplate,
 } from '../../api/template';
 import { useToast } from '../../context/ToastContext';
 import { parseErrorMessage } from '../../utils/formatters';
@@ -22,7 +22,7 @@ export default function TemplateEditPage() {
     const [showDelete, setShowDelete] = useState(false);
 
     const load = () =>
-        getTemplateById(id).then(r => { setTemplate(r.data); setName(r.data.name); }).catch(() => { });
+        getTemplateById(id).then(r => { setTemplate(r.data); setName(r.data.name || ''); }).catch(() => { });
 
     useEffect(() => { load(); }, [id]);
 
@@ -43,12 +43,32 @@ export default function TemplateEditPage() {
     };
 
     const handleIncrement = async (templateExerciseId) => {
-        try { const r = await incrementTemplateSets(id, templateExerciseId); setTemplate(r.data); }
+        try { 
+            await incrementTemplateSets(id, templateExerciseId);
+            setTemplate(prev => ({
+                ...prev,
+                exercises: prev.exercises.map(ex => 
+                    ex.templateExerciseId === templateExerciseId 
+                        ? { ...ex, defaultSetCount: ex.defaultSetCount + 1 } 
+                        : ex
+                )
+            }));
+        }
         catch (err) { addToast(parseErrorMessage(err)); }
     };
 
     const handleDecrement = async (templateExerciseId) => {
-        try { const r = await decrementTemplateSets(id, templateExerciseId); setTemplate(r.data); }
+        try { 
+            await decrementTemplateSets(id, templateExerciseId);
+            setTemplate(prev => ({
+                ...prev,
+                exercises: prev.exercises.map(ex => 
+                    ex.templateExerciseId === templateExerciseId 
+                        ? { ...ex, defaultSetCount: Math.max(0, ex.defaultSetCount - 1) } 
+                        : ex
+                )
+            }));
+        }
         catch (err) { addToast(parseErrorMessage(err)); }
     };
 
@@ -59,6 +79,34 @@ export default function TemplateEditPage() {
     };
 
     const exercises = [...(template?.exercises || [])].sort((a, b) => a.orderIndex - b.orderIndex);
+
+    const handleSave = async () => {
+        if (!name || !name.trim()) {
+            addToast('Please enter a routine name');
+            return;
+        }
+
+        if (exercises.length === 0) {
+            addToast('Please add at least one exercise to the routine');
+            return;
+        }
+
+        const hasZeroSets = exercises.some(ex => ex.defaultSetCount === 0);
+        if (hasZeroSets) {
+            addToast('Please ensure all exercises have at least 1 set');
+            return;
+        }
+
+        try {
+            if (name.trim() !== template?.name) {
+                await updateTemplateName(id, name.trim());
+            }
+            await saveTemplate(id);
+            navigate('/workout');
+        } catch (err) {
+            addToast(parseErrorMessage(err));
+        }
+    };
 
     return (
         <div className="min-h-screen bg-background">
@@ -101,10 +149,15 @@ export default function TemplateEditPage() {
                     </div>
                 ))}
 
-                {/* Delete template */}
-                <button onClick={() => setShowDelete(true)} className="w-full py-3 text-sm font-medium text-danger border border-danger/30 rounded-xl bg-white hover:bg-red-50 transition-colors mt-2">
-                    Delete Template
-                </button>
+                {/* Action buttons */}
+                <div className="flex flex-col gap-2 mt-2">
+                    <button onClick={handleSave} className="w-full py-3 text-sm font-semibold text-white bg-primary rounded-xl transition-colors">
+                        Save Template
+                    </button>
+                    <button onClick={() => setShowDelete(true)} className="w-full py-3 text-sm font-medium text-danger border border-danger/30 rounded-xl bg-white hover:bg-red-50 transition-colors">
+                        Delete Template
+                    </button>
+                </div>
             </div>
 
             {showPicker && <ExercisePickerSheet onClose={() => setShowPicker(false)} onAdd={handleAddExercises} />}

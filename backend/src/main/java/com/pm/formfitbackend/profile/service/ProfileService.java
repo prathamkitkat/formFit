@@ -30,8 +30,8 @@ public class ProfileService {
     private final ExerciseRepository exerciseRepository;
 
     public ProfileService(WorkoutRepository workoutRepository,
-                          WorkoutSetRepository workoutSetRepository,
-                          ExerciseRepository exerciseRepository) {
+            WorkoutSetRepository workoutSetRepository,
+            ExerciseRepository exerciseRepository) {
         this.workoutRepository = workoutRepository;
         this.workoutSetRepository = workoutSetRepository;
         this.exerciseRepository = exerciseRepository;
@@ -46,8 +46,7 @@ public class ProfileService {
         List<WorkoutSummaryResponse> recentWorkouts = workoutRepository
                 .findByUserIdAndWorkoutStatusWithExercisesAndSetsOrderByStartedAtDesc(
                         userId,
-                        WorkoutStatus.COMPLETED
-                )
+                        WorkoutStatus.COMPLETED)
                 .stream()
                 .map(WorkoutMapper::toSummaryResponse)
                 .collect(Collectors.toList());
@@ -64,19 +63,26 @@ public class ProfileService {
         LocalDateTime startDate;
 
         switch (period) {
-            case "3M": startDate = endDate.minusMonths(3); break;
-            case "6M": startDate = endDate.minusMonths(6); break;
-            case "12M": startDate = endDate.minusMonths(12); break;
+            case "3M":
+                startDate = endDate.minusMonths(3);
+                break;
+            case "6M":
+                startDate = endDate.minusMonths(6);
+                break;
+            case "12M":
+                startDate = endDate.minusMonths(12);
+                break;
             case "1M":
-            default: startDate = endDate.minusMonths(1); break;
+            default:
+                startDate = endDate.minusMonths(1);
+                break;
         }
 
         // Get aggregated data from database (native query returns List<Object[]>)
         List<Object[]> aggregates = workoutRepository.getDailyGraphAggregatesNative(
                 userId,
                 startDate,
-                endDate
-        );
+                endDate);
 
         // Convert Object[] to map for quick lookup
         // Object[]: [date, totalDuration, totalVolume, totalReps]
@@ -138,8 +144,7 @@ public class ProfileService {
         List<Object[]> currentStatsRaw = workoutRepository.getMonthlyStatsNative(
                 userId,
                 currentStartDate,
-                currentEndDate
-        );
+                currentEndDate);
         Object[] currentStats = currentStatsRaw.get(0);
 
         // Get previous month date range
@@ -151,8 +156,7 @@ public class ProfileService {
         List<Object[]> previousStatsRaw = workoutRepository.getMonthlyStatsNative(
                 userId,
                 previousStartDate,
-                previousEndDate
-        );
+                previousEndDate);
         Object[] previousStats = previousStatsRaw.get(0);
 
         // Extract current month values
@@ -169,11 +173,10 @@ public class ProfileService {
 
         // Calculate comparison
         ComparisonData comparison = new ComparisonData(
-                (int)(currentWorkouts - prevWorkouts),
+                (int) (currentWorkouts - prevWorkouts),
                 currentDuration - prevDuration,
                 currentVolume - prevVolume,
-                (int)(currentSets - prevSets)
-        );
+                (int) (currentSets - prevSets));
 
         // Build response
         MonthlyReportResponse response = new MonthlyReportResponse();
@@ -200,10 +203,10 @@ public class ProfileService {
 
         return results.stream()
                 .map(row -> new FrequentExerciseResponse(
-                        ((Number) row[0]).longValue(),      // id
-                        (String) row[1],                     // name
-                        (String) row[2],                     // imageUrl
-                        ((Number) row[3]).intValue()         // timesPerformed
+                        ((Number) row[0]).longValue(), // id
+                        (String) row[1], // name
+                        (String) row[2], // imageUrl
+                        ((Number) row[3]).intValue() // timesPerformed
                 ))
                 .collect(Collectors.toList());
     }
@@ -232,7 +235,8 @@ public class ProfileService {
 
         // Get heaviest weight (returns Object[] or null)
         // Object[]: [weight, endedAt]
-        Object[] heaviestWeight = workoutSetRepository.getHeaviestWeight(userId, exerciseId);
+        List<Object[]> heaviestWeightList = workoutSetRepository.getHeaviestWeight(userId, exerciseId, -1L, null);
+        Object[] heaviestWeight = heaviestWeightList.isEmpty() ? null : heaviestWeightList.get(0);
         if (heaviestWeight != null && heaviestWeight.length > 0 && heaviestWeight[0] != null) {
             response.setHeaviestWeight(((Number) heaviestWeight[0]).doubleValue());
             response.setHeaviestWeightDate(heaviestWeight[1].toString());
@@ -240,7 +244,8 @@ public class ProfileService {
 
         // Get best 1RM
         // Object[]: [oneRM, endedAt]
-        Object[] best1RM = workoutSetRepository.getBest1RM(userId, exerciseId);
+        List<Object[]> best1RMList = workoutSetRepository.getBest1RM(userId, exerciseId, -1L, null);
+        Object[] best1RM = best1RMList.isEmpty() ? null : best1RMList.get(0);
         if (best1RM != null && best1RM.length > 0 && best1RM[0] != null) {
             response.setBest1RM(((Number) best1RM[0]).doubleValue());
             response.setBest1RMDate(best1RM[1].toString());
@@ -248,7 +253,8 @@ public class ProfileService {
 
         // Get best set volume
         // Object[]: [volume, endedAt]
-        Object[] bestSetVolume = workoutSetRepository.getBestSetVolume(userId, exerciseId);
+        List<Object[]> bestSetVolumeList = workoutSetRepository.getBestSetVolume(userId, exerciseId, -1L, null);
+        Object[] bestSetVolume = bestSetVolumeList.isEmpty() ? null : bestSetVolumeList.get(0);
         if (bestSetVolume != null && bestSetVolume.length > 0 && bestSetVolume[0] != null) {
             response.setBestSetVolume(((Number) bestSetVolume[0]).doubleValue());
             response.setBestSetVolumeDate(bestSetVolume[1].toString());
@@ -256,7 +262,8 @@ public class ProfileService {
 
         // Get best session volume
         // Object[]: [sessionVolume, endedAt]
-        Object[] bestSessionVolume = workoutSetRepository.getBestSessionVolume(userId, exerciseId);
+        List<Object[]> bestSessionVolumeList = workoutSetRepository.getBestSessionVolume(userId, exerciseId, -1L, null);
+        Object[] bestSessionVolume = bestSessionVolumeList.isEmpty() ? null : bestSessionVolumeList.get(0);
         if (bestSessionVolume != null && bestSessionVolume.length > 0 && bestSessionVolume[0] != null) {
             response.setBestSessionVolume(((Number) bestSessionVolume[0]).doubleValue());
             response.setBestSessionVolumeDate(bestSessionVolume[1].toString());
@@ -299,8 +306,7 @@ public class ProfileService {
             calendar.add(new CalendarDayResponse(
                     date.toString(),
                     dayWorkouts.size(),
-                    workoutIds
-            ));
+                    workoutIds));
         }
 
         return calendar;

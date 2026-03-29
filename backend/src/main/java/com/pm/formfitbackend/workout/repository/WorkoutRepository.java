@@ -38,38 +38,68 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
             WorkoutStatus workoutStatus
     );
 
+    @Query("""
+    SELECT DISTINCT w
+    FROM Workout w
+    LEFT JOIN FETCH w.exercises we
+    LEFT JOIN FETCH we.sets ws
+    WHERE w.user.id = :userId
+    AND w.workoutStatus = :workoutStatus
+    AND LOWER(w.name) LIKE LOWER(CONCAT('%', :query, '%'))
+    ORDER BY w.endedAt DESC
+    """)
+    List<Workout> searchByUserIdAndWorkoutStatusAndNameContainingIgnoreCaseOrderByEndedAtDesc(
+            Long userId,
+            WorkoutStatus workoutStatus,
+            String query
+    );
+
     @Query(value = """
+SELECT 
+    DATE(w.ended_at) as date,
+    COALESCE(SUM(w.duration), 0) as totalDuration,
+    COALESCE(SUM(agg.total_volume), 0) as totalVolume,
+    COALESCE(SUM(agg.total_reps), 0) as totalReps
+FROM workouts w
+LEFT JOIN (
     SELECT 
-        DATE(w.ended_at) as date,
-        COALESCE(SUM(DISTINCT w.duration), 0) as totalDuration,
-        COALESCE(SUM(ws.weight * ws.reps), 0) as totalVolume,
-        COALESCE(SUM(ws.reps), 0) as totalReps
-    FROM workouts w
-    LEFT JOIN workout_exercises we ON we.workout_id = w.id
+        we.workout_id,
+        SUM(ws.weight * ws.reps) AS total_volume,
+        SUM(ws.reps) AS total_reps
+    FROM workout_exercises we
     LEFT JOIN workout_sets ws ON ws.workout_exercise_id = we.id
-    WHERE w.user_id = :userId
-    AND w.workout_status = 'COMPLETED'
-    AND w.ended_at >= :startDate
-    AND w.ended_at < :endDate
-    GROUP BY DATE(w.ended_at)
-    ORDER BY DATE(w.ended_at)
-    """, nativeQuery = true)
+    GROUP BY we.workout_id
+) agg ON agg.workout_id = w.id
+WHERE w.user_id = :userId
+AND w.workout_status = 'COMPLETED'
+AND w.ended_at >= :startDate
+AND w.ended_at < :endDate
+GROUP BY DATE(w.ended_at)
+ORDER BY DATE(w.ended_at)
+""", nativeQuery = true)
     List<Object[]> getDailyGraphAggregatesNative(Long userId, LocalDateTime startDate, LocalDateTime endDate);
 
     @Query(value = """
+SELECT 
+    COUNT(DISTINCT w.id),
+    COALESCE(SUM(w.duration), 0),
+    COALESCE(SUM(agg.total_volume), 0),
+    COALESCE(SUM(agg.total_sets), 0)
+FROM workouts w
+LEFT JOIN (
     SELECT 
-        COUNT(DISTINCT w.id),
-        COALESCE(SUM(w.duration), 0),
-        COALESCE(SUM(ws.weight * ws.reps), 0),
-        COUNT(ws.id)
-    FROM workouts w
-    LEFT JOIN workout_exercises we ON we.workout_id = w.id
+        we.workout_id,
+        SUM(ws.weight * ws.reps) AS total_volume,
+        COUNT(ws.id) AS total_sets
+    FROM workout_exercises we
     LEFT JOIN workout_sets ws ON ws.workout_exercise_id = we.id
-    WHERE w.user_id = :userId
-    AND w.workout_status = 'COMPLETED'
-    AND w.ended_at >= :startDate
-    AND w.ended_at < :endDate
-    """, nativeQuery = true)
+    GROUP BY we.workout_id
+) agg ON agg.workout_id = w.id
+WHERE w.user_id = :userId
+AND w.workout_status = 'COMPLETED'
+AND w.ended_at >= :startDate
+AND w.ended_at < :endDate
+""", nativeQuery = true)
     List<Object[]> getMonthlyStatsNative(Long userId, LocalDateTime startDate, LocalDateTime endDate);
 
     @Query(value = """
@@ -92,11 +122,10 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
 
     @Query(value = """
     SELECT DISTINCT e.*
-    FROM workouts w
-    JOIN workout_exercises we ON we.workout_id = w.id
-    JOIN exercises e ON e.id = we.exercise_id
-    WHERE w.user_id = :userId
-    AND w.workout_status = 'COMPLETED'
+    FROM exercises e
+    LEFT JOIN workout_exercises we ON we.exercise_id = e.id
+    LEFT JOIN workouts w ON w.id = we.workout_id AND w.user_id = :userId AND w.workout_status = 'COMPLETED'
+    WHERE (e.user_id = :userId AND e.archived = false) OR (w.id IS NOT NULL)
     ORDER BY e.name
     """, nativeQuery = true)
     List<Exercise> getUserPerformedExercises(Long userId);

@@ -9,6 +9,17 @@ export function formatDuration(minutes) {
     return `${m}min`;
 }
 
+export function formatActiveDuration(seconds) {
+    if (!seconds && seconds !== 0) return '0s';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+}
+
 export function formatVolume(kg) {
     if (kg === null || kg === undefined) return '0 kg';
     return kg.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' kg';

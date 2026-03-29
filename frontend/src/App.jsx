@@ -14,6 +14,7 @@ import WorkoutTabPage from './pages/workout/WorkoutTabPage';
 import ActiveWorkoutPage from './pages/workout/ActiveWorkoutPage';
 import WorkoutDetailPage from './pages/workout/WorkoutDetailPage';
 import TemplateEditPage from './pages/workout/TemplateEditPage';
+import TemplateDetailPage from './pages/workout/TemplateDetailPage';
 
 // Exercise
 import CreateExercisePage from './pages/exercise/CreateExercisePage';
@@ -56,7 +57,8 @@ export default function App() {
                 <Route path="/workout" element={<ProtectedRoute><WorkoutTabPage /></ProtectedRoute>} />
                 <Route path="/workout/active" element={<ProtectedRoute><ActiveWorkoutPage /></ProtectedRoute>} />
                 <Route path="/workout/:id" element={<ProtectedRoute><WorkoutDetailPage /></ProtectedRoute>} />
-                <Route path="/templates/:id" element={<ProtectedRoute><TemplateEditPage /></ProtectedRoute>} />
+                <Route path="/templates/:id" element={<ProtectedRoute><TemplateDetailPage /></ProtectedRoute>} />
+                <Route path="/templates/:id/edit" element={<ProtectedRoute><TemplateEditPage /></ProtectedRoute>} />
 
                 <Route path="/exercises/create" element={<ProtectedRoute><CreateExercisePage /></ProtectedRoute>} />
 

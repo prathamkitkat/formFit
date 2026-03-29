@@ -14,3 +14,4 @@ export const incrementTemplateSets = (id, templateExerciseId) =>
     api.post(`/templates/${id}/exercises/${templateExerciseId}/sets/increment`);
 export const decrementTemplateSets = (id, templateExerciseId) =>
     api.post(`/templates/${id}/exercises/${templateExerciseId}/sets/decrement`);
+export const saveTemplate = (id) => api.post(`/templates/${id}/save`);

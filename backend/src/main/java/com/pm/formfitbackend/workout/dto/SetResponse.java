@@ -1,11 +1,14 @@
 package com.pm.formfitbackend.workout.dto;
 
+import java.util.List;
+
 public class SetResponse {
 
     private Long id;
     private Integer setNumber;
     private Double weight;
     private Integer reps;
+    private List<String> prs; // e.g. ["Weight", "1RM", "Set Volume"]
 
     public SetResponse() {
     }
@@ -40,5 +43,13 @@ public class SetResponse {
 
     public void setReps(Integer reps) {
         this.reps = reps;
+    }
+
+    public List<String> getPrs() {
+        return prs;
+    }
+
+    public void setPrs(List<String> prs) {
+        this.prs = prs;
     }
 }

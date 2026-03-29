@@ -39,10 +39,10 @@ public class WorkoutService {
     private final UserRepository userRepository;
 
     public WorkoutService(WorkoutRepository workoutRepository,
-                          WorkoutExerciseRepository workoutExerciseRepository,
-                          WorkoutSetRepository workoutSetRepository,
-                          ExerciseRepository exerciseRepository,
-                          UserRepository userRepository) {
+            WorkoutExerciseRepository workoutExerciseRepository,
+            WorkoutSetRepository workoutSetRepository,
+            ExerciseRepository exerciseRepository,
+            UserRepository userRepository) {
         this.workoutRepository = workoutRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.workoutSetRepository = workoutSetRepository;
@@ -71,7 +71,7 @@ public class WorkoutService {
 
         workout = workoutRepository.save(workout);
 
-        return mapToDetailResponse(workout, userId);
+        return WorkoutMapper.toDetailResponse(workout, buildPreviousPerformances(workout, userId));
     }
 
     /**
@@ -80,7 +80,7 @@ public class WorkoutService {
     @Transactional(readOnly = true)
     public WorkoutDetailResponse getActiveWorkout(Long userId) {
         return workoutRepository.findByUserIdAndWorkoutStatus(userId, WorkoutStatus.IN_PROGRESS)
-                .map(workout -> mapToDetailResponse(workout, userId))
+                .map(workout -> WorkoutMapper.toDetailResponse(workout, buildPreviousPerformances(workout, userId)))
                 .orElse(null);
     }
 
@@ -91,20 +91,37 @@ public class WorkoutService {
 
         Workout workout = workoutRepository
                 .findByIdAndUserIdWithExercisesAndSets(workoutId, userId)
-                .orElseThrow(() ->
-                        new RuntimeException("Workout not found"));
+                .orElseThrow(() -> new RuntimeException("Workout not found"));
 
-        return mapToDetailResponse(workout, userId);
+        return WorkoutMapper.toDetailResponseWithPrs(workout,
+                buildPreviousPerformances(workout, userId),
+                workoutSetRepository, userId);
     }
+
     /**
      * Get workout history
      */
-    //loading execr and set
+    // loading execr and set
     @Transactional(readOnly = true)
     public List<WorkoutSummaryResponse> getWorkoutHistory(Long userId) {
 
         return workoutRepository
                 .findByUserIdAndWorkoutStatusWithExercisesAndSetsOrderByStartedAtDesc(userId, WorkoutStatus.COMPLETED)
+                .stream()
+                .map(WorkoutMapper::toSummaryResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Search workout history
+     */
+    @Transactional(readOnly = true)
+    public List<WorkoutSummaryResponse> searchWorkoutHistory(Long userId, String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return getWorkoutHistory(userId);
+        }
+        return workoutRepository
+                .searchByUserIdAndWorkoutStatusAndNameContainingIgnoreCaseOrderByEndedAtDesc(userId, WorkoutStatus.COMPLETED, query)
                 .stream()
                 .map(WorkoutMapper::toSummaryResponse)
                 .collect(Collectors.toList());
@@ -133,14 +150,14 @@ public class WorkoutService {
         }
 
         workout = workoutRepository.save(workout);
-        return mapToDetailResponse(workout, userId);
+        return WorkoutMapper.toDetailResponse(workout, buildPreviousPerformances(workout, userId));
     }
 
     /**
      * Replace an exercise while keeping the same orderIndex
      */
     public WorkoutDetailResponse replaceExercise(Long workoutId, Long workoutExerciseId,
-                                                 ReplaceExerciseRequest request, Long userId) {
+            ReplaceExerciseRequest request, Long userId) {
         Workout workout = getWorkoutAndValidate(workoutId, userId, WorkoutStatus.IN_PROGRESS);
 
         // ✅ Direct query instead of filtering
@@ -164,7 +181,7 @@ public class WorkoutService {
         workout.addExercise(newWorkoutExercise);
 
         workout = workoutRepository.save(workout);
-        return mapToDetailResponse(workout, userId);
+        return WorkoutMapper.toDetailResponse(workout, buildPreviousPerformances(workout, userId));
     }
 
     /**
@@ -173,18 +190,16 @@ public class WorkoutService {
     public WorkoutDetailResponse removeExerciseFromWorkout(
             Long workoutId,
             Long workoutExerciseId,
-            Long userId
-    ) {
-        //preloads the exercise
-        Workout workout = workoutRepository.findByIdAndUserIdWithExercisesAndSets(workoutId,userId).
-                orElseThrow(() -> new RuntimeException("Workout not found"));
+            Long userId) {
+        // preloads the exercise
+        Workout workout = workoutRepository.findByIdAndUserIdWithExercisesAndSets(workoutId, userId)
+                .orElseThrow(() -> new RuntimeException("Workout not found"));
 
         if (workout.getStatus() != WorkoutStatus.IN_PROGRESS) {
             throw new IllegalStateException(
                     "Workout must be " + WorkoutStatus.IN_PROGRESS +
                             " to perform this action. Current status: " +
-                            workout.getStatus()
-            );
+                            workout.getStatus());
         }
 
         WorkoutExercise workoutExercise = workout.getExercises().stream()
@@ -196,27 +211,26 @@ public class WorkoutService {
         workout.removeExercise(workoutExercise);
 
         // 🔥 Reorder remaining exercises
-        List<WorkoutExercise> sorted =
-                workout.getExercises().stream()
-                        .sorted(Comparator.comparing(WorkoutExercise::getOrderIndex))
-                        .toList();
+        List<WorkoutExercise> sorted = workout.getExercises().stream()
+                .sorted(Comparator.comparing(WorkoutExercise::getOrderIndex))
+                .toList();
 
         for (int i = 0; i < sorted.size(); i++) {
-            sorted.get(i).setOrderIndex(i+1);
+            sorted.get(i).setOrderIndex(i + 1);
         }
 
         workout = workoutRepository.save(workout);
 
-        return mapToDetailResponse(workout, userId);
+        return WorkoutMapper.toDetailResponse(workout, buildPreviousPerformances(workout, userId));
     }
 
     /**
      * Update notes for a workout exercise
      */
     public void updateExerciseNotes(Long workoutId,
-                                    Long workoutExerciseId,
-                                    UpdateExerciseNotesRequest request,
-                                    Long userId) {
+            Long workoutExerciseId,
+            UpdateExerciseNotesRequest request,
+            Long userId) {
 
         Workout workout = getWorkoutAndValidate(workoutId, userId, WorkoutStatus.IN_PROGRESS);
 
@@ -238,8 +252,8 @@ public class WorkoutService {
      * Returns only created set id
      */
     public Long addSetToExercise(Long workoutId,
-                                 Long workoutExerciseId,
-                                 Long userId) {
+            Long workoutExerciseId,
+            Long userId) {
 
         Workout workout = getWorkoutAndValidate(workoutId, userId, WorkoutStatus.IN_PROGRESS);
 
@@ -258,7 +272,7 @@ public class WorkoutService {
 
         workoutExercise.addSet(set);
 
-        workoutRepository.save(workout);
+        workoutRepository.saveAndFlush(workout);
 
         return set.getId(); // return only created ID
     }
@@ -270,10 +284,10 @@ public class WorkoutService {
      * Update a set
      */
     public void updateSet(Long workoutId,
-                          Long workoutExerciseId,
-                          Long setId,
-                          UpdateSetRequest request,
-                          Long userId) {
+            Long workoutExerciseId,
+            Long setId,
+            UpdateSetRequest request,
+            Long userId) {
 
         Workout workout = getWorkoutAndValidate(workoutId, userId, WorkoutStatus.IN_PROGRESS);
 
@@ -298,9 +312,9 @@ public class WorkoutService {
      * Delete a set
      */
     public void deleteSet(Long workoutId,
-                          Long workoutExerciseId,
-                          Long setId,
-                          Long userId) {
+            Long workoutExerciseId,
+            Long setId,
+            Long userId) {
 
         Workout workout = getWorkoutAndValidate(workoutId, userId, WorkoutStatus.IN_PROGRESS);
 
@@ -333,15 +347,13 @@ public class WorkoutService {
         for (WorkoutExercise we : workout.getExercises()) {
             if (we.getSets().isEmpty()) {
                 throw new RuntimeException(
-                        "Exercise '" + we.getExercise().getName() + "' has no sets. Add at least one set."
-                );
+                        "Exercise '" + we.getExercise().getName() + "' has no sets. Add at least one set.");
             }
 
             for (WorkoutSet set : we.getSets()) {
                 if (set.getReps() == null || set.getWeight() == null) {
                     throw new RuntimeException(
-                            "All sets must have weight and reps filled before completing workout"
-                    );
+                            "All sets must have weight and reps filled before completing workout");
                 }
             }
         }
@@ -354,7 +366,27 @@ public class WorkoutService {
         workout.setDuration((int) durationMinutes);
 
         workout = workoutRepository.save(workout);
-        return mapToDetailResponse(workout, userId);
+
+        WorkoutDetailResponse detail = WorkoutMapper.toDetailResponseWithPrs(workout,
+                buildPreviousPerformances(workout, userId),
+                workoutSetRepository, userId);
+
+        int totalPrs = 0;
+        if (detail.getExercises() != null) {
+            for (WorkoutExerciseResponse we : detail.getExercises()) {
+                if (we.getSets() != null) {
+                    for (SetResponse sr : we.getSets()) {
+                        if (sr.getPrs() != null && !sr.getPrs().isEmpty()) {
+                            totalPrs += sr.getPrs().size();
+                        }
+                    }
+                }
+            }
+        }
+        workout.setRecordsCount(totalPrs);
+        workoutRepository.save(workout);
+
+        return detail;
     }
 
     /**
@@ -384,32 +416,26 @@ public class WorkoutService {
     private Workout getWorkoutAndValidate(
             Long workoutId,
             Long userId,
-            WorkoutStatus requiredStatus
-    ) {
+            WorkoutStatus requiredStatus) {
 
         Workout workout = workoutRepository
                 .findByIdAndUserId(workoutId, userId)
-                .orElseThrow(() ->
-                        new RuntimeException("Workout not found")
-                );
+                .orElseThrow(() -> new RuntimeException("Workout not found"));
 
         if (workout.getStatus() != requiredStatus) {
             throw new IllegalStateException(
                     "Workout must be " + requiredStatus +
                             " to perform this action. Current status: " +
-                            workout.getStatus()
-            );
+                            workout.getStatus());
         }
 
         return workout;
     }
 
-    private WorkoutDetailResponse mapToDetailResponse(Workout workout, Long userId) {
-        List<PreviousPerformance> previousPerformances = workout.getExercises().stream()
+    private List<PreviousPerformance> buildPreviousPerformances(Workout workout, Long userId) {
+        return workout.getExercises().stream()
                 .map(we -> getPreviousPerformance(userId, we.getExercise().getId()))
                 .collect(Collectors.toList());
-
-        return WorkoutMapper.toDetailResponse(workout, previousPerformances);
     }
 
     private PreviousPerformance getPreviousPerformance(Long userId, Long exerciseId) {

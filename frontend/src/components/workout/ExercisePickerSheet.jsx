@@ -33,7 +33,8 @@ export default function ExercisePickerSheet({ onClose, onAdd }) {
     const equipments = [...new Set(exercises.map(e => e.equipment).filter(Boolean))];
 
     const filtered = exercises.filter(ex => {
-        const matchSearch = ex.name.toLowerCase().includes(search.toLowerCase());
+        const exName = ex.name || ex.exerciseName || '';
+        const matchSearch = exName.toLowerCase().includes(search.toLowerCase());
         const matchEquip = !equipmentFilter || ex.equipment === equipmentFilter;
         const matchMuscle = !muscleFilter ||
             ex.muscleGroups?.some(mg => mg.name === muscleFilter);
@@ -104,11 +105,11 @@ export default function ExercisePickerSheet({ onClose, onAdd }) {
                                 className={`flex items-center gap-3 px-4 py-3 border-b border-border cursor-pointer active:bg-gray-50 transition-colors ${selected ? 'border-l-4 border-l-primary' : ''}`}
                                 onClick={() => toggle(ex.id)}
                             >
-                                <ExerciseImage imageUrl={ex.imageUrl} name={ex.name} />
+                                <ExerciseImage imageUrl={ex.imageUrl} name={ex.name || ex.exerciseName} />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-text-primary">{ex.name}</p>
+                                    <p className="text-sm font-semibold text-text-primary">{ex.name || ex.exerciseName}</p>
                                     <p className="text-xs text-text-secondary truncate">
-                                        {ex.muscleGroups?.map(mg => mg.name).join(', ') || ex.equipment || '—'}
+                                        {[...(ex.muscleGroups?.map(mg => mg.name) || []), ex.equipment].filter(Boolean).join(', ') || '—'}
                                     </p>
                                 </div>
                             </div>

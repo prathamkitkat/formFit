@@ -64,6 +64,7 @@ public class TemplateService {
 
         return templateRepository.findAllByUserIdWithExercises(userId)
                 .stream()
+                .filter(t -> t.getName() != null && !t.getName().trim().isEmpty())
                 .map(TemplateMapper::toSummaryResponse)
                 .collect(Collectors.toList());
     }
@@ -136,6 +137,8 @@ public class TemplateService {
 //            te.setOrderIndex(index++);
 //        }
 
+        template = templateRepository.saveAndFlush(template);
+
         return TemplateMapper.toDetailResponse(template);
     }
 
@@ -179,6 +182,8 @@ public class TemplateService {
 
             template.addExercise(te);
         }
+
+        template = templateRepository.saveAndFlush(template);
 
         return TemplateMapper.toDetailResponse(template);
     }

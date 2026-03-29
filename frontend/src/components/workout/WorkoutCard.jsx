@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ThumbsUp, MessageCircle, Upload } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { formatDuration, formatVolume, timeAgo } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
@@ -38,7 +39,7 @@ export default function WorkoutCard({ workout, onDelete }) {
         endedAt,
         duration,
         totalVolume,
-        prCount,
+        recordsCount,
         exerciseCount,
         exerciseSummaries = [],
     } = workout;
@@ -107,10 +108,10 @@ export default function WorkoutCard({ workout, onDelete }) {
                     <p className="text-xs text-text-secondary">Volume</p>
                     <p className="text-sm font-semibold text-text-primary">{formatVolume(totalVolume)}</p>
                 </div>
-                {prCount > 0 && (
+                {recordsCount > 0 && (
                     <div>
                         <p className="text-xs text-text-secondary">Records</p>
-                        <p className="text-sm font-semibold text-text-primary">🏅 {prCount}</p>
+                        <p className="text-sm font-semibold text-text-primary">🥇 {recordsCount}</p>
                     </div>
                 )}
             </div>
@@ -134,10 +135,10 @@ export default function WorkoutCard({ workout, onDelete }) {
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-5 pt-2 border-t border-border text-text-secondary text-lg">
-                <button onClick={e => e.stopPropagation()} className="hover:text-primary transition-colors">👍</button>
-                <button onClick={e => e.stopPropagation()} className="hover:text-primary transition-colors">💬</button>
-                <button onClick={e => e.stopPropagation()} className="hover:text-primary transition-colors">↑</button>
+            <div className="flex items-center gap-5 pt-3 border-t border-border text-text-primary mt-1">
+                <button onClick={e => e.stopPropagation()} className="hover:text-primary transition-colors p-1 -ml-1"><ThumbsUp strokeWidth={1.5} size={22} /></button>
+                <button onClick={e => e.stopPropagation()} className="hover:text-primary transition-colors p-1"><MessageCircle strokeWidth={1.5} size={22} /></button>
+                <button onClick={e => e.stopPropagation()} className="hover:text-primary transition-colors p-1"><Upload strokeWidth={1.5} size={22} /></button>
             </div>
         </article>
     );

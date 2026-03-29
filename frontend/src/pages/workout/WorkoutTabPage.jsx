@@ -36,7 +36,7 @@ export default function WorkoutTabPage() {
     const handleNewRoutine = async () => {
         try {
             const res = await createTemplate();
-            navigate(`/templates/${res.data.templateId}`);
+            navigate(`/templates/${res.data.templateId}/edit`);
         } catch (err) {
             addToast(parseErrorMessage(err));
         }
@@ -92,7 +92,7 @@ export default function WorkoutTabPage() {
                     <p className="text-center text-text-muted text-sm py-8">No routines yet. Create one to get started.</p>
                 ) : (
                     <div className="flex flex-col gap-3">
-                        {templates.map(t => <TemplateCard key={t.templateId} template={t} />)}
+                        {templates.map(t => <TemplateCard key={t.templateId} template={t} onUpdate={fetchTemplates} />)}
                     </div>
                 )}
             </div>

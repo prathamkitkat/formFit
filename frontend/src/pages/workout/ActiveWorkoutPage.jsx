@@ -10,7 +10,7 @@ import {
     removeExercise, discardWorkout, completeWorkout,
     updateExerciseNotes, replaceExercise,
 } from '../../api/workout';
-import { parseErrorMessage, formatDuration } from '../../utils/formatters';
+import { parseErrorMessage, formatDuration, formatActiveDuration } from '../../utils/formatters';
 import { useDebouncedCallback } from '../../hooks/useDebounce';
 
 // -- Elapsed time hook --
@@ -18,7 +18,7 @@ function useElapsed(startedAt) {
     const [elapsed, setElapsed] = useState(0);
     useEffect(() => {
         if (!startedAt) return;
-        const update = () => setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 60000));
+        const update = () => setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
         update();
         const t = setInterval(update, 1000);
         return () => clearInterval(t);
@@ -300,7 +300,7 @@ export default function ActiveWorkoutPage() {
                 <h1 className="font-semibold text-text-primary">{workout?.name || 'Log Workout'}</h1>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-text-secondary flex items-center gap-1">
-                        <Clock size={14} /> {formatDuration(elapsed)}
+                        <Clock size={14} /> {formatActiveDuration(elapsed)}
                     </span>
                     <button
                         onClick={() => setShowFinish(true)}
@@ -314,7 +314,7 @@ export default function ActiveWorkoutPage() {
             {/* Stats bar */}
             <div className="bg-white border-b border-border px-4 py-2 flex divide-x divide-border">
                 {[
-                    { label: 'Duration', value: formatDuration(elapsed) },
+                    { label: 'Duration', value: formatActiveDuration(elapsed) },
                     { label: 'Volume', value: `${totalVolume.toLocaleString('en-US', { maximumFractionDigits: 1 })} kg` },
                     { label: 'Sets', value: String(totalSets) },
                 ].map(({ label, value }) => (

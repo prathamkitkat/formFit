@@ -45,12 +45,35 @@ export default function ProfilePage() {
         totalReps: repsArr[i]?.value || 0
     }));
 
-    const graphData = rawGraphData
-        .map(d => ({
+    let graphData = [];
+
+    if (period === '1M') {
+        graphData = rawGraphData.map(d => ({
             ...d,
             value: metric.transform(d[metric.key] || 0),
-        }))
-        .filter(d => d.value > 0);
+        }));
+    } else {
+        // Group by 7-day chunks (weekly) for 3M, 6M, 12M to prevent ultra-thin daily bars
+        let currentChunk = { date: '', totalDuration: 0, totalVolume: 0, totalReps: 0, count: 0 };
+        for (let i = 0; i < rawGraphData.length; i++) {
+            const d = rawGraphData[i];
+            if (currentChunk.count === 0) currentChunk.date = d.date;
+            
+            currentChunk.totalDuration += d.totalDuration;
+            currentChunk.totalVolume += d.totalVolume;
+            currentChunk.totalReps += d.totalReps;
+            currentChunk.count++;
+
+            // Push chunk if we hit 7 days or the end of the array
+            if (currentChunk.count === 7 || i === rawGraphData.length - 1) {
+                graphData.push({
+                    date: currentChunk.date,
+                    value: metric.transform(currentChunk[metric.key] || 0)
+                });
+                currentChunk = { date: '', totalDuration: 0, totalVolume: 0, totalReps: 0, count: 0 };
+            }
+        }
+    }
 
     const totalDuration = durationArr.reduce((sum, d) => sum + d.value, 0);
     const totalWorkouts = durationArr.filter(d => d.value > 0).length;
@@ -134,8 +157,10 @@ export default function ProfilePage() {
                                         tickLine={false}
                                         axisLine={{ stroke: '#e5e5e5' }}
                                         tickMargin={10}
+                                        minTickGap={30}
                                     />
                                     <YAxis
+                                        allowDecimals={false}
                                         tick={{ fontSize: 11, fill: '#888' }}
                                         tickLine={false}
                                         axisLine={false}
@@ -169,14 +194,13 @@ export default function ProfilePage() {
                     <h2 className="text-xl text-gray-400 mb-3 font-normal">Dashboard</h2>
                     <div className="grid grid-cols-2 gap-3">
                         {[
-                            { label: 'Statistics', emoji: '📈', path: '/profile/statistics' },
+                            { label: 'Statistics', emoji: '📈', path: '/profile/statistics', colSpan: 2 },
                             { label: 'Exercises', emoji: '🏋️', path: '/profile/exercises' },
-                            { label: 'Measures', emoji: '🧑‍⚕️', path: '/profile/measures' },
                             { label: 'Calendar', emoji: '📅', path: '/profile/calendar' },
                         ].map(item => (
                             <div key={item.label}
                                 onClick={() => navigate(item.path)}
-                                className="bg-[#F2F2F7] rounded-xl p-3.5 flex items-center gap-3 cursor-pointer hover:bg-gray-200 transition-colors">
+                                className={`bg-[#F2F2F7] rounded-xl p-3.5 flex items-center gap-3 cursor-pointer hover:bg-gray-200 transition-colors ${item.colSpan ? 'col-span-2' : ''}`}>
                                 <span className="text-xl">{item.emoji}</span>
                                 <span className="text-[15px] font-medium text-text-primary">{item.label}</span>
                             </div>

@@ -76,6 +76,21 @@ public class WorkoutController {
         return ResponseEntity.ok(workouts);
     }
 
+    /**
+     * GET /api/workouts/search
+     * Search completed workouts by name
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<WorkoutSummaryResponse>> searchWorkoutHistory(
+            @RequestParam String query,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<WorkoutSummaryResponse> workouts =
+                workoutService.searchWorkoutHistory(userDetails.getUserId(), query);
+
+        return ResponseEntity.ok(workouts);
+    }
+
 
     /**
      * POST /api/workouts/{workoutId}/exercises
